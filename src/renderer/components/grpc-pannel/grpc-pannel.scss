@@ -1,0 +1,51 @@
+.paper {
+	pointer-events: all;
+	position: relative;
+	overflow: hidden;
+
+	&::before {
+		background-color: darkgray;
+		border-radius: 50%;
+		content: "";
+		width: 2000px;
+		height: 1600px;
+		opacity: 0.2;
+		right: -140px;
+		top: -500px;
+		position: absolute;
+		pointer-events: none;
+		animation: rotate 22s infinite ease-in-out;
+	}
+
+	&::after {
+		pointer-events: none;
+		opacity: 0.1;
+		border-radius: 50%;
+		content: "";
+		width: 400px;
+		height: 400px;
+		position: absolute;
+		right: -200px;
+		top: -200px;
+		background-color: dimgray;
+	}
+
+	@keyframes rotate {
+		0% {
+			transform: rotate(0deg) translateY(-100px);
+	
+		}
+		50% {
+			transform: rotate(90deg) translateY(900px);
+		}
+		75% {
+			transform: rotate(180deg) translateY(300px);
+		}
+		100% {
+			transform: rotate(0deg) translateY(-100px);
+		}
+	}
+
+}
+
+
