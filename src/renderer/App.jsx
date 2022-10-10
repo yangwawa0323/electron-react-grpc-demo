@@ -1,5 +1,5 @@
 import './scss/App.scss'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter as Router, Routes, Route } from 'react-router-dom'
 import Blank from './pages/Blank'
 import Dashboard from './pages/Dashboard'
 import MainLayout from './layout/MainLayout'
@@ -7,7 +7,7 @@ import GrpcPannel from './components/grpc-pannel/GrpcPannel'
 
 function App() {
     return (
-        <BrowserRouter>
+        <Router>
             <Routes>
                 <Route path="/" element={<MainLayout />}>
                     <Route index element={<Dashboard />} />
@@ -16,7 +16,7 @@ function App() {
                
                 </Route>
             </Routes>
-        </BrowserRouter>
+        </Router>
     )
 }
 
