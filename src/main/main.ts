@@ -11,11 +11,106 @@
 import path from 'path';
 import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
+import fs from 'fs';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
 import debug from 'electron-debug';
+import { error } from 'console';
+
+
+interface PROGRESS {
+  frames: number;
+  currentFps: number;
+  currentKbps: number;
+  targetSize: number;
+  timemark: string;
+  percent: number;
+}
+
+const FfmpegCommand = require('fluent-ffmpeg');
+
+
+const ipcChannels = {
+  progressPercent: 'progressPercent',
+  ipcExample: 'ipc-example',
+  mergeVideoWatermark: 'merge-video-watermark',
+};
+
+const mergeVideo = async (event, args) => {
+  // extract the ffmpeg parameters
+  const ffmpegCommand = new FfmpegCommand();
+
+  const [video, image, subtitle, output] = args;
+
+  // set environment
+  let ffmpegPath;
+  let ffprobePath;
+  if (process.env.NODE_ENV === 'development') {
+    ffmpegPath = 'ffmpeg\\bin\\ffmpeg.exe';
+    ffprobePath = 'ffmpeg\\bin\\ffprobe.exe';
+  } else {
+    /**
+     * build environment path, DO NOT add __dirname, because source file will packaged into 7z asar file.
+     */
+    ffmpegPath = path.join('resources', 'ffmpeg' ,'bin', 'ffmpeg.exe');
+    ffprobePath = path.join( 'resources', 'ffmpeg' ,'bin', 'ffprobe.exe');
+  }
+
+  
+  if(fs.existsSync(ffmpegPath)) {
+    ffmpegCommand
+      .setFfmpegPath(ffmpegPath)
+    .setFfprobePath(ffprobePath)
+  }else{
+    console.log(`[DEBUG]: CANNOT found ${ffmpegPath}  `)
+    console.log(`[DEBUG]: __dirname ${__dirname}  `)
+    throw error(`CANNOT found ${ffmpegPath}`)
+  }
+
+  // prepare merge video and watermark, and add event listeners
+  const command = ffmpegCommand
+    .addInput(video)
+    .addInput(image)
+    .noAudio()
+    .on('progress', function (progress: PROGRESS) {
+      console.log(`[DEBUG]: progress ${progress.percent}`)
+      if (progress.percent)
+        event.reply(ipcChannels.progressPercent, {
+          percent: progress.percent,
+          end: false,
+        });
+    })
+    .on('end', () =>
+      event.reply(ipcChannels.progressPercent, { percent: 100, end: true })
+    )
+    .on(
+      'error',
+      function (err: { message: string }, stdout: unknown, stderr: unknown) {
+        console.log(`Cannot process video: ${err.message}`);
+      }
+    );
+
+
+  let complexFilterStr: string ;
+
+  if (subtitle.length > 0) {
+    complexFilterStr = '[0:v][1:v]overlay=x=W-w-30:y=H-h-30,subtitles=subtitles.srt';
+
+    // Due to the filter string format we CANNOT use the full path of the subtitle file.
+    // The solution is copy the subtitle to current folder which run the electron app.
+    await fs.copyFile(subtitle, 'subtitles.srt', () => {
+      // DOC: http://ffmpeg.org/ffmpeg-filters.html#overlay-1
+      command.complexFilter(complexFilterStr).save(output);
+    });
+  } else {
+    complexFilterStr = '[0:v][1:v]overlay=x=W-w-30:y=H-h-30';
+    command.complexFilter(complexFilterStr).save(output);
+  }
+
+};
+
 
 debug();
 
@@ -75,7 +170,9 @@ const createWindow = async () => {
     height: 728,
     icon: getAssetPath('icon.png'),
     webPreferences: {
-      preload: app.isPackaged
+      nodeIntegration: true,
+      contextIsolation: true,
+      preload: app.isPackaged || process.env.NODE_ENV === 'production'
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
     },
@@ -121,6 +218,11 @@ const createWindow = async () => {
 /**
  * Add event listeners...
  */
+
+// ffmpeg command IPC
+ipcMain.on(ipcChannels.mergeVideoWatermark, async (event, args) => {
+  mergeVideo(event, args);
+});
 
 app.on('window-all-closed', () => {
   // Respect the OSX convention of having the application in memory even

@@ -18,10 +18,11 @@ const Sidebar = () => {
     }, [location])
 
     const closeSidebar = () => {
-        document.querySelector('.main__content').style.transform = 'scale(1) translateX(0)'
+        const mainContent = document.querySelector('.main__content');
+        mainContent.style.transform = 'scale(1) translateX(0)'
         setTimeout(() => {
             document.body.classList.remove('sidebar-open')
-            document.querySelector('.main__content').style = ''
+            mainContent.style = ''
         }, 500);
     }
 

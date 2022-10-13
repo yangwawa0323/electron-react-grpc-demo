@@ -34,6 +34,8 @@ const FormDialog = (props) => {
   const grpcServer = useSelector((state) => state.grpcSettings.grpcServer);
 
 
+  const [server, setServer] = useState(grpcServer)
+
   const dispatch = useDispatch();
 
   const handleClose = () => {
@@ -46,7 +48,7 @@ const FormDialog = (props) => {
   };
 
   return (
-    <div>
+    <Box>
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>gRPC server setup</DialogTitle>
         <DialogContent>
@@ -64,7 +66,7 @@ const FormDialog = (props) => {
             label="Server Address:Port"
             fullWidth
             variant="standard"
-            value={grpcServer}
+            value={server}
             onChange={(e) => setServer(e.target.value)}
           />
         </DialogContent>
@@ -73,7 +75,7 @@ const FormDialog = (props) => {
           <Button onClick={setGrpcServer}>Confirm</Button>
         </DialogActions>
       </Dialog>
-    </div>
+    </Box>
   );
 };
 
